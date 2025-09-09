@@ -23,7 +23,7 @@ with open("service_account.json", "w") as f:
 
 # Authenticate with the service account
 gauth = GoogleAuth()
-gauth.LoadServiceConfigFile("service_account.json")
+gauth.LoadClientConfigFile("service_account.json")
 gauth.ServiceAuth()
 drive = GoogleDrive(gauth)
 
