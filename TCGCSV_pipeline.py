@@ -15,17 +15,18 @@ import json
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 
+# Load credentials from env and write to a temp file
 creds_json = os.environ.get("GDRIVE_CREDENTIALS")
-if not creds_json:
-    raise ValueError("GDRIVE_CREDENTIALS environment variable not found!")
 
-creds_dict = json.loads(creds_json)
+with open("service_account.json", "w") as f:
+    f.write(creds_json)
 
+# Authenticate with the service account
 gauth = GoogleAuth()
-gauth.settings['client_config_backend'] = 'service'
-gauth.settings['client_config'] = creds_dict
+gauth.LoadServiceConfigFile("service_account.json")
 gauth.ServiceAuth()
 drive = GoogleDrive(gauth)
+
 
 sets = {
     'Surging Sparks': 'https://tcgcsv.com/tcgplayer/3/23651/ProductsAndPrices.csv',
