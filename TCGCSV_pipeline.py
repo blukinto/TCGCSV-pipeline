@@ -45,7 +45,14 @@ def upload_to_drive(local_path, filename, parent_folder_id=None):
 
 # Example CSV download + upload
 sets = {
-    'Surging Sparks': 'https://tcgcsv.com/tcgplayer/3/23651/ProductsAndPrices.csv'
+    'Surging Sparks': 'https://tcgcsv.com/tcgplayer/3/23651/ProductsAndPrices.csv',
+    'Prismatic Evolutions': 'https://tcgcsv.com/tcgplayer/3/23821/ProductsAndPrices.csv',
+    'Destined Rivals': 'https://tcgcsv.com/tcgplayer/3/24269/ProductsAndPrices.csv',
+    'Black Bolt': 'https://tcgcsv.com/tcgplayer/3/24325/ProductsAndPrices.csv',
+    'White Flare': 'https://tcgcsv.com/tcgplayer/3/24380/ProductsAndPrices.csv',
+    '151': 'https://tcgcsv.com/tcgplayer/3/23237/ProductsAndPrices.csv',
+    'Shrouded Fable': 'https://tcgcsv.com/tcgplayer/3/23529/ProductsAndPrices.csv',
+    'Paldean Fates': 'https://tcgcsv.com/tcgplayer/3/23353/ProductsAndPrices.csv'
 }
 
 today = datetime.date.today().isoformat()
