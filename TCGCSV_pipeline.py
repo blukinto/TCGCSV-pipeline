@@ -33,17 +33,24 @@ else:
 gauth.SaveCredentialsFile("credentials.json")
 drive = GoogleDrive(gauth)
 
-# Example upload function
-def upload_to_drive(local_path, filename, parent_folder_id=None):
+def upload_to_drive(local_path, filename, parent_folder_id):
     file_drive = drive.CreateFile({
         'title': filename,
-        'parents': [{'id': parent_folder_id}] if parent_folder_id else []
+        'parents': [{'id': parent_folder_id}]
     })
     file_drive.SetContentFile(local_path)
     file_drive.Upload()
     print(f"Uploaded {filename}")
 
-# Example CSV download + upload
+def preprocess(filepath, set_name):
+    df = pd.read_csv(filepath)
+
+    df = df.drop(['productId','name','categoryId','groupId','imageCount','extCardText','directLowPrice','subTypeName','extNumber',	'extRarity',	'extCardType',	'extHP',	'extStage',	'extAttack1',	'extAttack2',	'extWeakness',	'extResistance'	,'extRetreatCost'], axis=1, errors='ignore')
+
+    df = df[df['cleanName'].str.contains(f'{set_name}')]
+
+    return df
+
 sets = {
     'Surging Sparks': 'https://tcgcsv.com/tcgplayer/3/23651/ProductsAndPrices.csv',
     'Prismatic Evolutions': 'https://tcgcsv.com/tcgplayer/3/23821/ProductsAndPrices.csv',
@@ -52,7 +59,21 @@ sets = {
     'White Flare': 'https://tcgcsv.com/tcgplayer/3/24380/ProductsAndPrices.csv',
     '151': 'https://tcgcsv.com/tcgplayer/3/23237/ProductsAndPrices.csv',
     'Shrouded Fable': 'https://tcgcsv.com/tcgplayer/3/23529/ProductsAndPrices.csv',
-    'Paldean Fates': 'https://tcgcsv.com/tcgplayer/3/23353/ProductsAndPrices.csv'
+    'Paldean Fates': 'https://tcgcsv.com/tcgplayer/3/23353/ProductsAndPrices.csv',
+    'Mega Evolution': 'https://tcgcsv.com/tcgplayer/3/24380/ProductsAndPrices.csv'
+}
+
+folders = {
+    'Surging Sparks': '18-wC2BiaclCUvvnwI9ZZTm-dbK11Klgc',
+    'Prismatic Evolutions': '1_kQN6JI4pnw2NrzbpP3NNKPIW850Pm-M',
+    'Destined Rivals': '19VTDSiA0j3DHbUGjmBMTasQOgZEWDBCL',
+    'Black Bolt': '1jm_kB_uah03xd2ALxfL-GL3ldQBvVYVh',
+    'White Flare': '1ITWm-bv1hJz5_rQucFGQWb6_Nk2bKL7j',
+    '151': '1h9rboDOOZipLC4geGzrDoPOugt5NcuSz',
+    'Shrouded Fable': '1wW-PKmzJqfUVKuUcJ18MJIVOzCEiMQeo',
+    'Paldean Fates': '1IBs19s4YogQI0RHFopUqTMqSyjU5ofHc',
+    'Mega Evolution': '1XEs4ifVAGKQmku82KoJERagGPEc6whaR'
+    
 }
 
 today = datetime.date.today().isoformat()
@@ -65,7 +86,8 @@ for set_name, url in sets.items():
     with open(local_path, 'wb') as f:
         f.write(response.content)
 
-    df = pd.read_csv(local_path)
+    df = preprocess(local_path, set_name)
     df.to_csv(local_path, index=False)
 
-    upload_to_drive(local_path, filename)
+    drive_folder = folders[set_name]
+    upload_to_drive(local_path, filename, drive_folder)
