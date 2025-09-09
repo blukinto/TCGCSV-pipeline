@@ -7,26 +7,27 @@ Original file is located at
     https://colab.research.google.com/drive/1xYk412e7PVmyvFhqwWyWCBMrcYt4bh-3
 """
 
+import os
+import json
 import requests
 import datetime
 import pandas as pd
-import os
-import json
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
+from oauth2client.service_account import ServiceAccountCredentials
 
-# Load credentials from env and write to a temp file
 creds_json = os.environ.get("GDRIVE_CREDENTIALS")
+if not creds_json:
+    raise ValueError("GDRIVE_CREDENTIALS environment variable not found!")
 
-with open("service_account.json", "w") as f:
-    f.write(creds_json)
+creds_dict = json.loads(creds_json)
 
-# Authenticate with the service account
+scopes = ["https://www.googleapis.com/auth/drive"]
+credentials = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scopes)
+
 gauth = GoogleAuth()
-gauth.LoadClientConfigFile("service_account.json")
-gauth.ServiceAuth()
+gauth.credentials = credentials
 drive = GoogleDrive(gauth)
-
 
 sets = {
     'Surging Sparks': 'https://tcgcsv.com/tcgplayer/3/23651/ProductsAndPrices.csv',
