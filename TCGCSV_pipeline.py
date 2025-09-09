@@ -8,92 +8,57 @@ Original file is located at
 """
 
 import os
-import json
 import requests
 import datetime
 import pandas as pd
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
-from oauth2client.service_account import ServiceAccountCredentials
+import json
 
-creds_json = os.environ.get("GDRIVE_CREDENTIALS")
-if not creds_json:
-    raise ValueError("GDRIVE_CREDENTIALS environment variable not found!")
+# Write temporary client and token JSONs from secrets
+with open("oauth_client.json", "w") as f:
+    f.write(os.environ["GDRIVE_OAUTH_CLIENT_JSON"])
 
-creds_dict = json.loads(creds_json)
+with open("credentials.json", "w") as f:
+    f.write(os.environ["GDRIVE_OAUTH_TOKEN_JSON"])
 
-scopes = ["https://www.googleapis.com/auth/drive"]
-credentials = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scopes)
-
+# Authenticate
 gauth = GoogleAuth()
-gauth.credentials = credentials
+gauth.LoadClientConfigFile("oauth_client.json")
+gauth.LoadCredentialsFile("credentials.json")
+if gauth.credentials is None:
+    gauth.LocalWebserverAuth()
+else:
+    gauth.Authorize()
+gauth.SaveCredentialsFile("credentials.json")
 drive = GoogleDrive(gauth)
 
-sets = {
-    'Surging Sparks': 'https://tcgcsv.com/tcgplayer/3/23651/ProductsAndPrices.csv',
-    'Prismatic Evolutions': 'https://tcgcsv.com/tcgplayer/3/23821/ProductsAndPrices.csv',
-    'Destined Rivals': 'https://tcgcsv.com/tcgplayer/3/24269/ProductsAndPrices.csv',
-    'Black Bolt': 'https://tcgcsv.com/tcgplayer/3/24325/ProductsAndPrices.csv',
-    'White Flare': 'https://tcgcsv.com/tcgplayer/3/24380/ProductsAndPrices.csv',
-    '151': 'https://tcgcsv.com/tcgplayer/3/23237/ProductsAndPrices.csv',
-    'Shrouded Fable': 'https://tcgcsv.com/tcgplayer/3/23529/ProductsAndPrices.csv',
-    'Paldean Fates': 'https://tcgcsv.com/tcgplayer/3/23353/ProductsAndPrices.csv'
-}
-
-def preprocess(filepath, set_name):
-    df = pd.read_csv(filepath)
-    df = df.drop([
-        'productId','name','categoryId','groupId','imageCount','extCardText',
-        'directLowPrice','subTypeName','extNumber','extRarity','extCardType',
-        'extHP','extStage','extAttack1','extAttack2','extWeakness','extResistance',
-        'extRetreatCost'], axis=1, errors='ignore')
-    df = df[df['cleanName'].str.contains(set_name)]
-    return df
-
-def get_or_create_folder(folder_name, parent_folder_id=None):
-    query = f"title='{folder_name}' and mimeType='application/vnd.google-apps.folder'"
-    if parent_folder_id:
-        query += f" and '{parent_folder_id}' in parents"
-    folders = drive.ListFile({'q': query}).GetList()
-    if folders:
-        return folders[0]['id']
-    else:
-        folder_metadata = {'title': folder_name, 'mimeType': 'application/vnd.google-apps.folder'}
-        if parent_folder_id:
-            folder_metadata['parents'] = [{'id': parent_folder_id}]
-        folder = drive.CreateFile(folder_metadata)
-        folder.Upload()
-        return folder['id']
-
-def upload_to_drive(local_path, filename, parent_folder_id):
+# Example upload function
+def upload_to_drive(local_path, filename, parent_folder_id=None):
     file_drive = drive.CreateFile({
         'title': filename,
-        'parents': [{'id': parent_folder_id}]
+        'parents': [{'id': parent_folder_id}] if parent_folder_id else []
     })
     file_drive.SetContentFile(local_path)
     file_drive.Upload()
-    print(f"Uploaded {filename} to folder ID {parent_folder_id}")
+    print(f"Uploaded {filename}")
 
-def main():
-    today = datetime.date.today().isoformat()
-    ROOT_FOLDER_ID = get_or_create_folder("Pokemon")
+# Example CSV download + upload
+sets = {
+    'Surging Sparks': 'https://tcgcsv.com/tcgplayer/3/23651/ProductsAndPrices.csv'
+}
 
-    for set_name, url in sets.items():
-        set_folder_id = get_or_create_folder(set_name, parent_folder_id=ROOT_FOLDER_ID)
-        filename = f"{set_name.replace(' ', '_')}_{today}.csv"
-        local_path = f"/tmp/{filename}"
+today = datetime.date.today().isoformat()
+for set_name, url in sets.items():
+    filename = f"{set_name.replace(' ', '_')}_{today}.csv"
+    local_path = f"/tmp/{filename}"
 
-        print(f"Downloading {set_name}...")
-        response = requests.get(url)
-        response.raise_for_status()
-        with open(local_path, 'wb') as f:
-            f.write(response.content)
+    response = requests.get(url)
+    response.raise_for_status()
+    with open(local_path, 'wb') as f:
+        f.write(response.content)
 
-        df = preprocess(local_path, set_name)
-        df.to_csv(local_path, index=False)
-        print(f"Preprocessed {set_name}, saved locally.")
+    df = pd.read_csv(local_path)
+    df.to_csv(local_path, index=False)
 
-        upload_to_drive(local_path, filename, set_folder_id)
-
-if __name__ == "__main__":
-    main()
+    upload_to_drive(local_path, filename)
