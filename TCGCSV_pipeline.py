@@ -28,9 +28,9 @@ gauth.LoadClientConfigFile("oauth_client.json")
 gauth.LoadCredentialsFile("credentials.json")
 if gauth.credentials is None:
     gauth.LocalWebserverAuth()
+    gauth.SaveCredentialsFile("credentials.json")
 else:
     gauth.Authorize()
-gauth.SaveCredentialsFile("credentials.json")
 drive = GoogleDrive(gauth)
 
 def upload_to_drive(local_path, filename, parent_folder_id):
